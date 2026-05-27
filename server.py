@@ -3,32 +3,33 @@ import threading
 import os
 
 # =========================
-# SERVER CONFIG
+# CONFIG
 # =========================
 
 HOST = "0.0.0.0"
 PORT = int(os.environ.get("PORT", 5555))
 
 # =========================
-# CREATE SOCKET
+# SOCKET SETUP
 # =========================
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 server.bind((HOST, PORT))
+
 server.listen()
 
-print(f"[SERVER STARTED] Running on port {PORT}")
+print(f"[SERVER STARTED] Port: {PORT}")
 
 # =========================
-# CLIENT STORAGE
+# STORAGE
 # =========================
 
 clients = []
 usernames = {}
 
 # =========================
-# BROADCAST FUNCTION
+# BROADCAST
 # =========================
 
 def broadcast(message, sender=None):
@@ -38,9 +39,11 @@ def broadcast(message, sender=None):
         if client != sender:
 
             try:
-                client.send(message)
+
+                client.sendall(message)
 
             except:
+
                 remove_client(client)
 
 # =========================
@@ -62,7 +65,7 @@ def remove_client(client):
         client.close()
 
         broadcast(
-            f"{username} left the virtual LAN.".encode()
+            f"{username} left the server.".encode()
         )
 
 # =========================
@@ -74,18 +77,23 @@ def handle_client(client):
     while True:
 
         try:
+
             message = client.recv(1024)
 
             if not message:
                 break
 
-            decoded = message.decode()
+            decoded = message.decode().strip()
 
             print(decoded)
 
-            broadcast(message, client)
+            broadcast(
+                decoded.encode(),
+                client
+            )
 
         except:
+
             break
 
     remove_client(client)
@@ -101,9 +109,9 @@ while True:
     print(f"[CONNECTED] {address}")
 
     # Ask username
-    client.send("USERNAME".encode())
+    client.sendall(b"USERNAME\n")
 
-    username = client.recv(1024).decode()
+    username = client.recv(1024).decode().strip()
 
     usernames[client] = username
 
@@ -112,11 +120,11 @@ while True:
     print(f"[NEW USER] {username}")
 
     broadcast(
-        f"{username} joined the virtual LAN.".encode()
+        f"{username} joined the server.".encode()
     )
 
-    client.send(
-        "[CONNECTED TO VIRTUAL LAN SERVER]".encode()
+    client.sendall(
+        b"[CONNECTED TO SERVER]"
     )
 
     thread = threading.Thread(
